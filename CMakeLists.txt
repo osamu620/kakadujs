@@ -13,7 +13,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # force KAKADU_THREADING off as we haven't tested it yet.  
-SET(KAKADU_THREADING OFF CACHE BOOL "Kakadu Threading has not been tested yet" FORCE)  # TODO: Test with threading enabled
+SET(KAKADU_THREADING ON CACHE BOOL "Kakadu Threading has not been tested yet" FORCE)  # TODO: Test with threading enabled
 
 # add the kakadu library from extern
 add_subdirectory(extern/kakadu EXCLUDE_FROM_ALL)

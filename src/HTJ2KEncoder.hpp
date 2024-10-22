@@ -205,19 +205,19 @@ public:
     siz_ref->finalize();
 
     kdu_buffer_target target(encoded_);
-    // kdu_supp::jp2_family_tgt tgt;
-    // tgt.open(&target);
-    // kdu_supp::jp2_target output;
-    // output.open(&tgt);
-    // kdu_supp::jp2_dimensions dims = output.access_dimensions();
-    // dims.init(&siz);
-    // kdu_supp::jp2_colour colr = output.access_colour();
-    // colr.init((frameInfo_.componentCount == 3) ? kdu_supp::JP2_sRGB_SPACE : kdu_supp::JP2_sLUM_SPACE);
-    // output.write_header();
-    // output.open_codestream(true);
+    kdu_supp::jp2_family_tgt tgt;
+    tgt.open(&target);
+    kdu_supp::jp2_target output;
+    output.open(&tgt);
+    kdu_supp::jp2_dimensions dims = output.access_dimensions();
+    dims.init(&siz);
+    kdu_supp::jp2_colour colr = output.access_colour();
+    colr.init((frameInfo_.componentCount == 3) ? kdu_supp::JP2_sRGB_SPACE : kdu_supp::JP2_sLUM_SPACE);
+    output.write_header();
+    output.open_codestream(true);
 
     kdu_core::kdu_codestream codestream;
-    codestream.create(&siz, &target);
+    codestream.create(&siz, &output);
 
     // Set up any specific coding parameters and finalize them.
     if (htEnabled_)
@@ -267,11 +267,13 @@ public:
 
     // Now compress the image in one hit, using `kdu_stripe_compressor'
     kdu_supp::kdu_stripe_compressor compressor;
-    // kdu_supp::kdu_thread_env env;
-    // env.create();
-    // env.add_thread();
+    kdu_supp::kdu_thread_env env;
+    env.create();
+    env.add_thread();
+    env.add_thread();
     
-    compressor.start(codestream, 0, nullptr, nullptr, 0U, false, false, true, 0.0, 0, true);//, &env);
+    
+    compressor.start(codestream, 0, nullptr, nullptr, 0U, false, false, true, 0.0, 0, true, &env);
     
     // compressor.start(codestream);
     int stripe_heights[3] = {frameInfo_.height, frameInfo_.height, frameInfo_.height};
@@ -300,8 +302,8 @@ public:
     // Finally, cleanup
     codestream.destroy();
 
-    // tgt.close();
-    // output.close();
+    tgt.close();
+    output.close();
     target.close();
   }
 
