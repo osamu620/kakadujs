@@ -145,14 +145,20 @@ public:
     quantizationStep_ = quantizationStep;
   }
 
+  /// <summary>
+  /// Sets the Qfactor value (0 - 100)
+  /// </summary>
   void setQfactor(int qf)
   {
-    if (qf < 0)
+    if (qf < 0) {
       qf = 0;
-    if (qf > 100)
+    }
+    if (qf > 100) {
       qf = 100;
-      qfactor = qf;
+    }
+    qfactor = qf;
   }
+
   /// <summary>
   /// Sets the progression order
   /// 0 = LRCP
@@ -232,7 +238,7 @@ public:
     else
     {
       codestream.access_siz()->parse_string("Creversible=no");
-      snprintf(param,32, "Qfactor=%zu", qfactor);
+      snprintf(param,32, "Qfactor=%d", qfactor);
       codestream.access_siz()->parse_string(param);
       // snprintf(param, 32, "Qstep=%f", quantizationStep_);
       // codestream.access_siz()->parse_string(param);
