@@ -2,7 +2,7 @@
 OPTION(KAKADU_SIMD_ACCELERATION "Enable Kakadu's heavily optimized implementation of HTJ2K" ON)
 
 # NOTE - Has not been tested yet
-option(KAKADU_THREADING "Build Kakadu with threading" OFF)
+option(KAKADU_THREADING "Build Kakadu with threading" ON)
 
 # disable threads if not enabled
 if(NOT KAKADU_THREADING)

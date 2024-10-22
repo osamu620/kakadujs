@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project (kakadujs LANGUAGES CXX)
 
 # search for the kakadu source code in extern
-find_path(KAKADU_ROOT NAMES Enabling_HT.txt HINTS ${CMAKE_SOURCE_DIR}/extern/* REQUIRED NO_CACHE)
+find_path(KAKADU_ROOT NAMES Enabling_HT.txt HINTS ${CMAKE_SOURCE_DIR}/ext/kakadujs/extern/* REQUIRED NO_CACHE)
 
 # set the build type if not specified
 set(default_build_type "Release")

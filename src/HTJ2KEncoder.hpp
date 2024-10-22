@@ -11,6 +11,8 @@
 #include "kdu_sample_processing.h"
 #include "kdu_utils.h"
 #include "jp2.h"
+#include "Size.hpp"
+#include <vector>
 
 // Application level includes
 #include "kdu_stripe_compressor.h"
@@ -56,7 +58,10 @@ public:
                    quantizationStep_(-1.0),
                    progressionOrder_(2), // RPCL
                    blockDimensions_(64, 64),
-                   htEnabled_(true)
+                   htEnabled_(true),
+                   qfactor(85),
+                   buf_(nullptr),
+                   size_(0)
   {
   }
 
@@ -106,6 +111,11 @@ public:
     return decoded_;
   }
 
+  void setSourceImage(uint8_t *buf, size_t size) {
+    buf_ = buf;
+    size_ = size;
+  }
+
   /// <summary>
   /// Returns the buffer to store the encoded bytes.  This method is not
   /// exported to JavaScript, it is intended to be called by C++ code
@@ -135,6 +145,14 @@ public:
     quantizationStep_ = quantizationStep;
   }
 
+  void setQfactor(int qf)
+  {
+    if (qf < 0)
+      qf = 0;
+    if (qf > 100)
+      qf = 100;
+      qfactor = qf;
+  }
   /// <summary>
   /// Sets the progression order
   /// 0 = LRCP
@@ -187,19 +205,19 @@ public:
     siz_ref->finalize();
 
     kdu_buffer_target target(encoded_);
-    kdu_supp::jp2_family_tgt tgt;
-    tgt.open(&target);
-    kdu_supp::jp2_target output;
-    output.open(&tgt);
-    kdu_supp::jp2_dimensions dims = output.access_dimensions();
-    dims.init(&siz);
-    kdu_supp::jp2_colour colr = output.access_colour();
-    colr.init((frameInfo_.componentCount == 3) ? kdu_supp::JP2_sRGB_SPACE : kdu_supp::JP2_sLUM_SPACE);
-    output.write_header();
-    output.open_codestream(true);
+    // kdu_supp::jp2_family_tgt tgt;
+    // tgt.open(&target);
+    // kdu_supp::jp2_target output;
+    // output.open(&tgt);
+    // kdu_supp::jp2_dimensions dims = output.access_dimensions();
+    // dims.init(&siz);
+    // kdu_supp::jp2_colour colr = output.access_colour();
+    // colr.init((frameInfo_.componentCount == 3) ? kdu_supp::JP2_sRGB_SPACE : kdu_supp::JP2_sLUM_SPACE);
+    // output.write_header();
+    // output.open_codestream(true);
 
     kdu_core::kdu_codestream codestream;
-    codestream.create(&siz, &output);
+    codestream.create(&siz, &target);
 
     // Set up any specific coding parameters and finalize them.
     if (htEnabled_)
@@ -214,8 +232,10 @@ public:
     else
     {
       codestream.access_siz()->parse_string("Creversible=no");
-      snprintf(param, 32, "Qstep=%f", quantizationStep_);
+      snprintf(param,32, "Qfactor=%zu", qfactor);
       codestream.access_siz()->parse_string(param);
+      // snprintf(param, 32, "Qstep=%f", quantizationStep_);
+      // codestream.access_siz()->parse_string(param);
     }
 
     switch (progressionOrder_)
@@ -242,37 +262,46 @@ public:
 
     snprintf(param, 32, "Cblk={%d,%d}", blockDimensions_.width, blockDimensions_.height);
     codestream.access_siz()->parse_string(param);
+
     codestream.access_siz()->finalize_all(); // Set up coding defaults
 
     // Now compress the image in one hit, using `kdu_stripe_compressor'
     kdu_supp::kdu_stripe_compressor compressor;
-    compressor.start(codestream);
+    // kdu_supp::kdu_thread_env env;
+    // env.create();
+    // env.add_thread();
+    
+    compressor.start(codestream, 0, nullptr, nullptr, 0U, false, false, true, 0.0, 0, true);//, &env);
+    
+    // compressor.start(codestream);
     int stripe_heights[3] = {frameInfo_.height, frameInfo_.height, frameInfo_.height};
-    if (frameInfo_.bitsPerSample <= 8)
-    {
-      compressor.push_stripe(
-          decoded_.data(),
-          stripe_heights);
-    }
-    else
-    {
-      bool is_signed[3] = {frameInfo_.isSigned, frameInfo_.isSigned, frameInfo_.isSigned};
-      int precisions[3] = {frameInfo_.bitsPerSample, frameInfo_.bitsPerSample, frameInfo_.bitsPerSample};
-      compressor.push_stripe(
-          (kdu_core::kdu_int16 *)decoded_.data(),
-          stripe_heights,
-          NULL,
-          NULL,
-          NULL,
-          precisions,
-          is_signed);
-    }
+    compressor.push_stripe(buf_, stripe_heights);
+    // if (frameInfo_.bitsPerSample <= 8)
+    // {
+    //   compressor.push_stripe(
+    //       decoded_.data(),
+    //       stripe_heights);
+    // }
+    // else
+    // {
+    //   bool is_signed[3] = {frameInfo_.isSigned, frameInfo_.isSigned, frameInfo_.isSigned};
+    //   int precisions[3] = {frameInfo_.bitsPerSample, frameInfo_.bitsPerSample, frameInfo_.bitsPerSample};
+    //   compressor.push_stripe(
+    //       (kdu_core::kdu_int16 *)decoded_.data(),
+    //       stripe_heights,
+    //       NULL,
+    //       NULL,
+    //       NULL,
+    //       precisions,
+    //       is_signed);
+    // }
     compressor.finish();
 
     // Finally, cleanup
     codestream.destroy();
-    tgt.close();
-    output.close();
+
+    // tgt.close();
+    // output.close();
     target.close();
   }
 
@@ -286,4 +315,7 @@ private:
   size_t progressionOrder_;
   Size blockDimensions_;
   bool htEnabled_;
+  int qfactor;
+  uint8_t *buf_;
+  size_t size_;
 };
