@@ -31,7 +31,7 @@ public: // Member functions
     encoded_.resize(0);
   }
   ~kdu_buffer_target() { return; } // Destructor must be virtual
-  int get_capabilities() { return KDU_TARGET_CAP_CACHED; }
+  int get_capabilities() { return KDU_TARGET_CAP_SEQUENTIAL /* KDU_TARGET_CAP_CACHED */; }
   bool write(const kdu_core::kdu_byte *buf, int num_bytes)
   {
     const size_t size = encoded_.size();
@@ -210,20 +210,23 @@ public:
     kdu_core::kdu_params *siz_ref = &siz;
     siz_ref->finalize();
 
+    kdu_core::kdu_compressed_target *compressed_out = nullptr;
     kdu_buffer_target target(encoded_);
-    kdu_supp::jp2_family_tgt tgt;
-    tgt.open(&target);
-    kdu_supp::jp2_target output;
-    output.open(&tgt);
-    kdu_supp::jp2_dimensions dims = output.access_dimensions();
-    dims.init(&siz);
-    kdu_supp::jp2_colour colr = output.access_colour();
-    colr.init((frameInfo_.componentCount == 3) ? kdu_supp::JP2_sRGB_SPACE : kdu_supp::JP2_sLUM_SPACE);
-    output.write_header();
-    output.open_codestream(true);
+    compressed_out  = &target;
+    // kdu_supp::jp2_family_tgt tgt;
+    // tgt.open(&target);
+    // kdu_supp::jp2_target output;
+    // output.open(&tgt);
+    // kdu_supp::jp2_dimensions dims = output.access_dimensions();
+    // dims.init(&siz);
+    // kdu_supp::jp2_colour colr = output.access_colour();
+    // colr.init((frameInfo_.componentCount == 3) ? kdu_supp::JP2_sRGB_SPACE : kdu_supp::JP2_sLUM_SPACE);
+    // output.write_header();
+    // output.open_codestream(true);
+    // compressed_out  = &output;
 
     kdu_core::kdu_codestream codestream;
-    codestream.create(&siz, &output);
+    codestream.create(&siz, compressed_out);
 
     // Set up any specific coding parameters and finalize them.
     if (htEnabled_)
@@ -308,8 +311,8 @@ public:
     // Finally, cleanup
     codestream.destroy();
 
-    tgt.close();
-    output.close();
+    // tgt.close();
+    // output.close();
     target.close();
   }
 
